@@ -8,6 +8,7 @@
 
 using fmt::print;
 using IntPair=std::pair<int,int>;
+using EdgeVec=std::vector<IntPair>;
 struct FileOpenException: public std::exception{
     virtual const char* what() const noexcept {
         return "File open failed";
@@ -15,6 +16,7 @@ struct FileOpenException: public std::exception{
 };
 
 void readGraphFile(const std::string& path,std::vector<IntPair>& edges);
+void outputEgoNetToFile(const std::vector<EdgeVec>& egoNets,std::string path);
 
 template <typename T>
 void printContainer(const T& container,char delimeter=' '){

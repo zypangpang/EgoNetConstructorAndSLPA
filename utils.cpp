@@ -20,4 +20,16 @@ void readGraphFile(const string& path,vector<IntPair>& edges){
     }
 }
 
+void outputEgoNetToFile(const vector<EdgeVec>& egoNets,string path){
+    ofstream fout(path);
+    if(!fout) throw FileOpenException();
+    for(int i=0;i<egoNets.size();++i){
+        string str=fmt::format("#{}:",i);
+        fout<<str<<endl;
+        for(auto e: egoNets[i]){
+            str=fmt::format("{} {}",e.first,e.second);
+            fout<<str<<endl;
+        }
+    }
+}
 
