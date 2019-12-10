@@ -9,17 +9,17 @@ struct Node {
     int degree=0;
     int id;
     unordered_set<int> adjSet;
-    Node(){}
 };
 
 class Graph {
     vector<Node> G;
-    int vertexNum=0;
+    //int vertexNum=0;
 public:
     Graph(int n);
     void addEdge(int u,int v);
     void outputG() const;
     void enumTriangle(vector<Triangle>& triangles);
+    int getVertexNum(){return G.size();}
 
 };
 

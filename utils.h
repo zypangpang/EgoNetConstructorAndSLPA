@@ -16,4 +16,9 @@ struct FileOpenException: public std::exception{
 
 void readGraphFile(const std::string& path,std::vector<IntPair>& edges);
 
+template <typename T>
+void printContainer(const T& container,char delimeter=' '){
+    for_each(container.begin(),container.end(),[=](typename T::const_reference a){print("{}{}",a,delimeter);});
+}
+
 #endif // UTILS_H
