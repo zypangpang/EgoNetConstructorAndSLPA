@@ -22,5 +22,12 @@ template <typename T>
 void printContainer(const T& container,char delimeter=' '){
     for_each(container.begin(),container.end(),[=](typename T::const_reference a){print("{}{}",a,delimeter);});
 }
-
+template <typename T>
+inline void fillContainer(T& container, int begin=0,int step=1){
+    int i=begin;
+    for(auto it=container.begin();it!=container.end();++it){
+        (*it)=i;
+        i+=step;
+    }
+}
 #endif // UTILS_H

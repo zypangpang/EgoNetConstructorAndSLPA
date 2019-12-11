@@ -8,7 +8,7 @@
 #include <set>
 #include "utils.h"
 #include "graph.h"
-//#define DEBUG
+#define DEBUG
 using namespace std;
 void genVertexIdMap(const EdgeVec& edges, unordered_map<int,int>& vid){
     for(auto e : edges){
@@ -76,7 +76,7 @@ int main()
             print("{}->{}\n",e.first,e.second);
         }
     }
-    outputEgoNetToFile(egoNets,"egoNets.txt");
+    //outputEgoNetToFile(egoNets,"egoNets.txt");
 #else
     vector<IntPair> edges;
     try{
@@ -91,7 +91,8 @@ int main()
     Graph g(vid.size());
     for_each(edges.begin(),edges.end(),[&](const IntPair& e){g.addEdge(vid[e.first],vid[e.second]);});
     print("finish gen G\n");
-    //g.outputG();
+    g.outputG();
+    return 0;
 
     vector<Triangle> tris;
     g.enumTriangle(tris);
@@ -101,7 +102,6 @@ int main()
     print("finish getting ego nets\n");
     outputEgoNetToFile(egoNets,"egoNets.txt");
     print("finish writing to file\n");
-
 #endif
     return 0;
 }

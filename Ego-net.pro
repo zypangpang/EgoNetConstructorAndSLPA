@@ -6,10 +6,12 @@ CONFIG -= qt
 SOURCES += \
         graph.cpp \
         main.cpp \
+        slpa.cpp \
         src/format.cc \
         utils.cpp
 
 HEADERS += \
+    SLPA.h \
     fmt/core.h \
     fmt/format-inl.h \
     fmt/format.h \

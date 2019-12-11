@@ -18,8 +18,11 @@ public:
     Graph(int n);
     void addEdge(int u,int v);
     void outputG() const;
-    void enumTriangle(vector<Triangle>& triangles);
-    int getVertexNum(){return G.size();}
+    void enumTriangle(vector<Triangle>& triangles) const;
+    vector<Node>::size_type getVertexNum() const {return G.size();}
+    const Node& operator[](vector<Node>::size_type i) const {
+        return G[i];
+    }
 
 };
 

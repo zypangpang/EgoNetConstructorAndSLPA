@@ -27,23 +27,25 @@ void Graph::addEdge(int u, int v)
 
 void Graph::outputG() const
 {
-    for(auto node: G){
-        print("---- Node {}, Degree {}:\n",node.id,node.degree);
+    for(const auto& node: G){
+        //print("#{}:\n",node.id);
         for(auto v:node.adjSet){
-            print("{}->{}\n",node.id,v);
+            if(node.id<v)
+                print("{} {}\n",node.id,v);
         }
     }
 }
 
-void Graph::enumTriangle(vector<Triangle> &triangles)
+void Graph::enumTriangle(vector<Triangle> &triangles) const
 {
     vector<int> degreeOrder(G.size());
-    accumulate(degreeOrder.begin(),degreeOrder.end(),0,
-               [](int prev,int& cur)->int{cur=prev; return cur+1;});
+    fillContainer(degreeOrder);
+    //accumulate(degreeOrder.begin(),degreeOrder.end(),0,
+    //           [](int prev,int& cur)->int{cur=prev; return cur+1;});
     sort(degreeOrder.begin(),degreeOrder.end(),[&](int a, int b){return G[a].degree<G[b].degree;});
     vector<bool> mask(G.size(),false);
     for(auto u: degreeOrder){
-        auto Nu=G[u].adjSet;
+        const auto& Nu=G[u].adjSet;
         for(auto vit=Nu.begin();vit!=Nu.end();++vit){
             auto v=*vit;
             auto zit=vit;
