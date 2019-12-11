@@ -8,17 +8,10 @@
 #include <set>
 #include "utils.h"
 #include "graph.h"
+#include "SLPA.h"
 #define DEBUG
 using namespace std;
-void genVertexIdMap(const EdgeVec& edges, unordered_map<int,int>& vid){
-    for(auto e : edges){
-        int u=e.first, v=e.second;
-        if(vid.count(u)==0)
-            vid[u]=static_cast<int>(vid.size());
-        if(vid.count(v)==0)
-            vid[v]=static_cast<int>(vid.size());
-    }
-}
+
 shared_ptr<Graph> genTestGraph(int vn){
     auto g=make_shared<Graph>(vn);
     for(int step=1;step<3;++step){
@@ -76,6 +69,11 @@ int main()
             print("{}->{}\n",e.first,e.second);
         }
     }
+    print("------ego net {}",0);
+    auto slpa=Slpa::getInstance(Graph(egoNets[0]));
+    slpa->SLPA();
+    slpa->outputLabelMem();
+
     //outputEgoNetToFile(egoNets,"egoNets.txt");
 #else
     vector<IntPair> edges;

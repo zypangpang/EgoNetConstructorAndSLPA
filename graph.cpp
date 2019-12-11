@@ -15,6 +15,27 @@ Graph::Graph(int n)
     }
 }
 
+Graph::Graph(const EdgeVec &edges)
+{
+    vid.clear();
+    genVertexIdMap(edges);
+    G.resize(vid.size());
+    for_each(vid.begin(),vid.end(),[&](const IntPair& p){G[p.second].id=p.first;});
+    for(const auto& e: edges){
+        addEdge(vid[e.first],vid[e.second]);
+    }
+}
+
+void Graph::genVertexIdMap(const EdgeVec& edges){
+    for(auto e : edges){
+        int u=e.first, v=e.second;
+        if(vid.count(u)==0)
+            vid[u]=static_cast<int>(vid.size());
+        if(vid.count(v)==0)
+            vid[v]=static_cast<int>(vid.size());
+    }
+}
+
 void Graph::addEdge(int u, int v)
 {
     if(G[u].adjSet.count(v)>0)
@@ -27,11 +48,12 @@ void Graph::addEdge(int u, int v)
 
 void Graph::outputG() const
 {
-    for(const auto& node: G){
-        //print("#{}:\n",node.id);
+    for(int u=0;u<G.size();++u){
+        const auto& node=G[u];
         for(auto v:node.adjSet){
-            if(node.id<v)
-                print("{} {}\n",node.id,v);
+            if(u<v){
+                print("{} {}\n",node.id,G[v].id);
+            }
         }
     }
 }
@@ -53,7 +75,7 @@ void Graph::enumTriangle(vector<Triangle> &triangles) const
                 auto z=*zit;
                 if(v==z||mask[v]||mask[z]) continue;
                 if(G[v].adjSet.count(z)){
-                    triangles.push_back(make_tuple(u,v,z));
+                    triangles.push_back(make_tuple(G[u].id,G[v].id,G[z].id));
                 }
             }
         }
