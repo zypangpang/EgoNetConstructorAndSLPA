@@ -3,6 +3,7 @@
 #include <fmt/core.h>
 #include <set>
 #include "utils.h"
+#include "SLPA.h"
 
 using namespace std;
 
@@ -33,5 +34,28 @@ void outputEgoNetToFile(const vector<EdgeVec>& egoNets,string path){
     }
 }
 
-
-
+void mergeCommunities(vector<Community> &communities)
+{
+    vector<int> order(communities.size());
+    fillContainer(order);
+    vector<bool> mask(order.size(),false);
+    sort(order.begin(),order.end(),[&](int a,int b){return communities[a].nodes.size()>communities[b].nodes.size();});
+    for(int i=0;i<order.size()-1;++i){
+        if(mask[order[i]]) continue;
+        for(int j=i+1;j<order.size();++j){
+            if(mask[order[j]]) continue;
+            auto l1=order[i];
+            auto l2=order[j];
+            if(isSubset(communities[l1].nodes,communities[l2].nodes)){
+                mask[l2]=true;
+            }
+        }
+    }
+    vector<Community> tcomm;
+    for(int i=0;i<order.size();++i){
+        if(!mask[i]){
+            tcomm.push_back(move(communities[i]));
+        }
+    }
+    communities=move(tcomm);
+}

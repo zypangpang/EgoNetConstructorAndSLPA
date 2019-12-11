@@ -29,40 +29,95 @@ void Slpa::SLPA(){
     }
 }
 
-void Slpa::getCommunity(vector<EdgeVec> &communities)
+void Slpa::getCommunity(vector<Community> &communities)
 {
-    communities.clear();
+    unordered_map<int,Community> map_communities;
+    getNodeCommunity(map_communities);
+    getEdgeCommunity(map_communities);
+    for(const auto& pr: map_communities){
+        communities.push_back(move(pr.second));
+    }
+}
+
+void Slpa::getNodeCommunity(unordered_map<int, Community> &res_communities)
+{
+    unordered_map<int,vector<int>> commMap;
+    for(int u=0;u<labelMem.size();++u){
+        const auto& labels=labelMem[u];
+        for_each(labels.begin(),labels.end(),[&](int l){
+            if(commMap.count(l)) commMap[l].push_back(G[u].id);
+            else commMap[l]=vector<int>{G[u].id};
+        });
+    }
+    vector<int> labels;
+    //vector<vector<int>> communities;
+    for(const auto& comm : commMap){
+        labels.push_back(comm.first);
+        //communities.push_back(move(comm.second));
+    }
+    vector<int> order(labels.size());
+    vector<bool> mask(labels.size(),false);
+    fillContainer(order);
+    sort(order.begin(),order.end(),[&](int a,int b){return commMap[labels[a]].size()>commMap[labels[b]].size();});
+    for(int i=0;i<order.size()-1;++i){
+        if(mask[order[i]]) continue;
+        for(int j=i+1;j<order.size();++j){
+            if(mask[order[j]]) continue;
+            auto l1=labels[order[i]];
+            auto l2=labels[order[j]];
+            if(isSubset(commMap[l1],commMap[l2])){
+                mask[order[j]]=true;
+            }
+        }
+    }
+    //avlLabels.clear();
+    res_communities.clear();
+    for(int i=0;i<labels.size();++i){
+        if(!mask[i]){
+            auto l=labels[i];
+            //avlLabels.insert(labels[i]);
+            res_communities[l]=Community{move(commMap[l]),EdgeVec()};
+        }
+    }
+}
+
+void Slpa::getEdgeCommunity(unordered_map<int,Community> &communities)
+{
+    if(communities.empty()){
+        getNodeCommunity(communities);
+    }
     unordered_map<int,EdgeVec> commMap;
     auto vn=G.getVertexNum();
     for(int u=0;u<vn;++u){
         unordered_set<int> uSet;
         for(auto l: labelMem[u]){
-            uSet.insert(l);
+            if(communities.count(l))
+                uSet.insert(l);
         }
         const auto& uNode=G[u];
         for(auto v: uNode.adjSet){
             if(u>v) continue;
             for(auto l: labelMem[v]){
-                if(uSet.count(l)) {
+                if(communities.count(l) && uSet.count(l)) {
                     if(commMap.count(l)){
-                        commMap[l].push_back({u,v});
+                        commMap[l].push_back({G[u].id,G[v].id});
                     }
                     else{
-                        commMap[l]=EdgeVec{{u,v}};
+                        commMap[l]=EdgeVec{{G[u].id,G[v].id}};
                     }
                 }
             }
         }
     }
     for(const auto& pr: commMap){
-        communities.push_back(pr.second);
+        communities[pr.first].edges=move(pr.second);
     }
 }
 
 void Slpa::outputLabelMem()
 {
     for(int i=0;i<labelMem.size();++i){
-        print("----Node id {}:\n",i);
+        print("----Node id {}:\n",G[i].id);
         printContainer(labelMem[i]);
         print("\n");
     }

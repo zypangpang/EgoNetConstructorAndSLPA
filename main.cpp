@@ -62,19 +62,54 @@ int main()
     g->enumTriangle(tris);
     vector<EdgeVec> egoNets(g->getVertexNum());
     getEgoNets(tris,egoNets,true);
+    vector<Community> allCommunities;
     for(int i=0;i<egoNets.size();++i){
         auto net=egoNets[i];
         print("----Ego-net for node {}:\n", i);
         for(auto e: net){
             print("{}->{}\n",e.first,e.second);
         }
+        auto slpa=Slpa::getInstance(Graph(net));
+        slpa->SLPA();
+        //slpa->outputLabelMem();
+        vector<Community> communities;
+        slpa->getCommunity(communities);
+        using vvint_iter=decltype(communities.begin());
+        allCommunities.insert(allCommunities.end(),move_iterator<vvint_iter>(communities.begin()),
+                              move_iterator<vvint_iter>(communities.end()));
+        /*slpa->getNodeCommunity(communities);
+        for(const auto& c : communities){
+            print("Community:\n");
+            printContainer(c);
+            print("\n");
+        }
+        using vvint_iter=decltype(communities.begin());
+        allCommunities.insert(allCommunities.end(),move_iterator<vvint_iter>(communities.begin()),
+                              move_iterator<vvint_iter>(communities.end()));
+        vector<EdgeVec> EdgeCommunities;
+        slpa->getEdgeCommunity(EdgeCommunities);
+        for(const auto& c : EdgeCommunities){
+            print("Edge Community:\n");
+            for(const auto& p:c){
+                print("{}->{}\n",p.first,p.second);
+            }
+            print("\n");
+        }*/
     }
-    print("------ego net {}",0);
-    auto slpa=Slpa::getInstance(Graph(egoNets[0]));
-    slpa->SLPA();
-    slpa->outputLabelMem();
-
-    //outputEgoNetToFile(egoNets,"egoNets.txt");
+    vector<int> avlLabels;
+    mergeCommunities(allCommunities);
+    print("all communities:\n");
+    for(const auto& c : allCommunities){
+            print("Community:\n");
+            print("nodes:\n");
+            printContainer(c.nodes);
+            print("\n");
+            print("edges:\n");
+            for(const auto& p:c.edges){
+                print("{}->{}\n",p.first,p.second);
+            }
+            print("\n");
+    }
 #else
     vector<IntPair> edges;
     try{

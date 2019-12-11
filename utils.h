@@ -1,14 +1,14 @@
 #ifndef UTILS_H
 #define UTILS_H
 #include "fmt/core.h"
-#include <iostream>
 #include <functional>
 #include <memory>
 #include <exception>
 #include <vector>
 #include <string>
 #include <random>
-
+#include <unordered_set>
+struct Community;
 using namespace std;
 using fmt::print;
 using randFuncType=function<mt19937::result_type()>;
@@ -35,10 +35,26 @@ inline void fillContainer(T& container, int begin=0,int step=1){
         i+=step;
     }
 }
+template <typename T>
+bool isSubset(const T& set1,const T& set2){
+    const T *pset1=&set1,*pset2=&set2;
+    if(set1.size()<set2.size()) swap(pset1,pset2);
+
+    unordered_set<typename T::value_type> tset;
+    for(const auto& x: (*pset1)){
+        tset.insert(x);
+    }
+    for(const auto& x: (*pset2)){
+        if(tset.count(x)==0)
+            return false;
+    }
+    return true;
+}
 inline randFuncType getRandomFunc(int min, int max){
     random_device rd;
     mt19937 mt(rd());
     uniform_int_distribution<mt19937::result_type> dist(min,max);
     return bind(dist,mt);
 }
+void mergeCommunities(vector<Community> &communities);
 #endif // UTILS_H
