@@ -20,7 +20,7 @@ public:
         return instance;
     }*/
 public:
-    Slpa(Graph&& g,int tT,double tr):G(move(g)),r(tr),T(tT){
+    Slpa(Graph&& g,int tT=20,double tr=0.1):G(move(g)),r(tr),T(tT){
         labelMem.resize(G.getVertexNum());
      //   avlLabels.clear();
     }

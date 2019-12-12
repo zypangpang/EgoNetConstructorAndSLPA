@@ -89,4 +89,7 @@ inline randFuncType getRandomFunc(int min, int max){
 }
 void mergeCommunities(vector<Community> &communities);
 void mergeSmallCommunities(vector<Community> &communities);
+
+void fastMergeCommunities(vector<Community>& communities);
+void mergeTwoCommus(vector<Community>& left,vector<Community>& right, vector<Community>& result);
 #endif // UTILS_H

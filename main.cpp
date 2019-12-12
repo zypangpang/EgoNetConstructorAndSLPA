@@ -47,7 +47,7 @@ void readEgoNetsFromFile(vector<EgoNet>& egoNets, const string& path){
     EgoNet* curNet=nullptr;
     while(getline(fin,line)){
         if(line[0]=='#') {
-            if(egoNets.size()==50000) break; //Only for DEBUG
+            //if(egoNets.size()==10000) break; //Only for DEBUG
             egoNets.push_back(EgoNet{stoi(line.substr(1)),EdgeVec()});
             curNet=&(egoNets.back());
         }
@@ -63,13 +63,16 @@ void writeCommunityToFile(vector<Community> const& community, string const& path
     ofstream fout(path);
     if(!fout) throw FileOpenException();
     for(auto const& c: community){
-        string line;
+        string line("#");
         auto const& nodes=c.nodes;
         for(auto n: nodes){
             line+=to_string(n);
             line+=' ';
         }
         fout<<line<<endl;
+        for(auto const& e: c.edges){
+            fout<<e.first<<" "<<e.second<<endl;
+        }
     }
 }
 int main()
@@ -141,33 +144,26 @@ int main()
     //print("finish gen G\n");
 
     //getAndWriteEgoNets("egoNets.txt");
-    constexpr auto egoNetFilePath="egoNets.txt";
+    constexpr auto egoNetFilePath="egoNets_oriId.txt";
     vector<EgoNet> egoNets;
     runningTime(readEgoNetsFromFile,egoNets,egoNetFilePath);
     print("finish reading egonets\n");
-    //readEgoNetsFromFile(egoNets,"egoNets_oriId.txt");
-    /*for(int i=0;i<egoNets.size();++i){
-        print("ego nets {}:\n",egoNets[i].egoid);
-        printContainer(egoNets[i].edges);
-        print("\n");
-    }*/
+
     omp_set_num_threads(PARALLEL_NUM);
     vector<Community> allCommunities[PARALLEL_NUM];
-    int egoSize=egoNets.size();
-    //int i=0;
     using vvint_iter=decltype(allCommunities[0].begin());
     auto getAllcommunities=[&](){
         #pragma omp parallel for
-        for(int i=0;i<egoSize;++i){
+        for(int i=0;i<egoNets.size();++i){
             int thid=omp_get_thread_num();
             auto const& net=egoNets[i];
             if(net.edges.empty()) continue;
             //auto slpa=Slpa::getInstance(Graph(net.edges),10,0.1);
-            Slpa slpa(Graph(net.edges),10,0.1);
+            Slpa slpa(Graph(net.edges));
             slpa.SLPA();
             //slpa->outputLabelMem();
             vector<Community> communities;
-            slpa.getCommunity(communities,false);
+            slpa.getCommunity(communities,true);
            // #pragma omp critical
             allCommunities[thid].insert(allCommunities[thid].end(),move_iterator<vvint_iter>(communities.begin()),
                                   move_iterator<vvint_iter>(communities.end()));
@@ -175,35 +171,29 @@ int main()
     };
     runningTime(getAllcommunities);
     print("finish get all communities\n");
+
     vector<Community> finalCommunities;
-#pragma omp parallel for
+    auto mergeAllCommunities=[&](){
+        #pragma omp parallel for
+        for(int i=0;i<PARALLEL_NUM;++i){
+            //print("all community size: {}\n",allCommunities[i].size());
+            fastMergeCommunities(allCommunities[i]);
+            //print("all community size: {}\n",allCommunities[i].size());
+
+        }
+    };
+    runningTime(mergeAllCommunities);
+    print("finish merge all communities\n");
     for(int i=0;i<PARALLEL_NUM;++i){
-        print("all community size: {}\n",allCommunities[i].size());
-        runningTime(mergeCommunities,allCommunities[i]);
-        print("all community size: {}\n",allCommunities[i].size());
-        //finalCommunities.insert(finalCommunities.end(),move_iterator<vvint_iter>(allCommunities[i].begin()),
-        //                          move_iterator<vvint_iter>(allCommunities[i].end()));
+        finalCommunities.insert(finalCommunities.end(),move_iterator<vvint_iter>(allCommunities[i].begin()),
+                                  move_iterator<vvint_iter>(allCommunities[i].end()));
 
     }
-    print("final communities size: {}",finalCommunities.size());
-    /*runningTime(mergeCommunities,allCommunities);
-    print("finish merge all communities\n");
-    writeCommunityToFile(allCommunities,"communities.txt");
-    print("finish writing all communities\n");*/
+    print("final communities size: {}\n",finalCommunities.size());
 
+    runningTime(writeCommunityToFile,finalCommunities,"communities.txt");
+    print("finish writing all communities\n");
 
-    /*print("all communities:\n");
-    for(const auto& c : allCommunities){
-            print("Community:\n");
-            print("nodes:\n");
-            printContainer(c.nodes);
-            print("\n");
-            print("edges:\n");
-            for(const auto& p:c.edges){
-                print("{}->{}\n",p.first,p.second);
-            }
-            print("\n");
-    }*/
 #endif
     return 0;
 }

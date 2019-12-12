@@ -35,28 +35,26 @@ void outputEgoNetToFile(const vector<EgoNet>& egoNets,string path){
     }
 }
 void mergeSmallCommunities(vector<Community> &communities){
-         vector<int> order(communities.size());
-        fillContainer(order);
-        vector<bool> mask(order.size(),false);
-        sort(order.begin(),order.end(),[&](int a,int b){return communities[a].nodes.size()>communities[b].nodes.size();});
-        for(int i=0;i<order.size()-1;++i){
-            if(mask[order[i]]) continue;
-            for(int j=i+1;j<order.size();++j){
-                if(mask[order[j]]) continue;
-                auto l1=order[i];
-                auto l2=order[j];
-                if(isSubset(communities[l1].nodes,communities[l2].nodes)){
-                    mask[l2]=true;
-                }
+    vector<bool> mask(communities.size(),false);
+    for(int i=0;i<communities.size();++i){
+        for(int j=i+1;j<communities.size();++j){
+            if(mask[i]) break;
+            if(mask[j]) continue;
+            auto const& ci=communities[i].nodes;
+            auto const& cj=communities[j].nodes;
+            if(isSubset(ci,cj)){
+                if(ci.size()>cj.size()) mask[j]=true;
+                else mask[i]=true;
             }
         }
-        vector<Community> tcomm;
-        for(int i=0;i<order.size();++i){
-            if(!mask[i]){
-                tcomm.push_back(move(communities[i]));
-            }
+    }
+    vector<Community> tcomm;
+    for(int i=0;i<communities.size();++i){
+        if(!mask[i]){
+            tcomm.push_back(move(communities[i]));
         }
-        communities=move(tcomm);
+    }
+    communities=move(tcomm);
 }
 void mergeCommunities(vector<Community> &communities)
 {
@@ -86,4 +84,46 @@ void mergeCommunities(vector<Community> &communities)
         communities.insert(communities.end(),move_iterator<vvint_iter>(comm.begin()),
                                   move_iterator<vvint_iter>(comm.end()));
     }
+}
+void mergeTwoCommus(vector<Community>& left,vector<Community>& right, vector<Community>& result){
+    vector<bool> mask1(left.size(),false);
+    vector<bool> mask2(right.size(),false);
+    for(int i=0;i<left.size();++i){
+        for(int j=0;j<right.size();++j){
+            if(mask1[i]) break;
+            if(mask2[j]) continue;
+            auto const& lc=left[i].nodes;
+            auto const& rc=right[j].nodes;
+            if(isSubset(lc,rc)){
+                if(lc.size()>rc.size()) mask2[j]=true;
+                else mask1[i]=true;
+            }
+        }
+    }
+    result.clear();
+    for(int i=0;i<mask1.size();++i){
+        if(!mask1[i]) result.push_back(move(left[i]));
+    }
+    for(int i=0;i<mask2.size();++i){
+        if(!mask2[i]) result.push_back(move(right[i]));
+    }
+
+}
+void fastMergeCommunities(vector<Community>& communities){
+     if(communities.size()<10){
+         mergeSmallCommunities(communities);
+         return;
+     }
+     auto it=communities.begin();
+     auto end=communities.end();
+     auto mid=it+communities.size()/2;
+     using cit_type=decltype (it);
+     vector<Community> left_commus,right_commus;
+     left_commus.insert(left_commus.end(),move_iterator<cit_type>(it),
+                                  move_iterator<cit_type>(mid));
+     right_commus.insert(right_commus.end(),move_iterator<cit_type>(mid),
+                                  move_iterator<cit_type>(end));
+     fastMergeCommunities(left_commus);
+     fastMergeCommunities(right_commus);
+     mergeTwoCommus(left_commus,right_commus,communities);
 }
