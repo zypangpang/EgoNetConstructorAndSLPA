@@ -2,7 +2,7 @@
 #include <random>
 #include "utils.h"
 #include "SLPA.h"
-Slpa* Slpa::instance=nullptr;
+//Slpa* Slpa::instance=nullptr;
 void Slpa::SLPA(){
     //Init
     auto n=G.getVertexNum();

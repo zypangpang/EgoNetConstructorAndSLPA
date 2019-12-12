@@ -7,12 +7,13 @@
 #include <numeric>
 #include <unordered_map>
 #include <set>
+#include "omp.h"
 #include "utils.h"
 #include "graph.h"
 #include "SLPA.h"
 //#define DEBUG
 using namespace std;
-
+constexpr int PARALLEL_NUM=8;
 shared_ptr<Graph> genTestGraph(int vn){
     auto g=make_shared<Graph>(vn);
     for(int step=1;step<3;++step){
@@ -46,7 +47,7 @@ void readEgoNetsFromFile(vector<EgoNet>& egoNets, const string& path){
     EgoNet* curNet=nullptr;
     while(getline(fin,line)){
         if(line[0]=='#') {
-            //if(egoNets.size()==2) break; //Only for DEBUG
+            if(egoNets.size()==50000) break; //Only for DEBUG
             egoNets.push_back(EgoNet{stoi(line.substr(1)),EdgeVec()});
             curNet=&(egoNets.back());
         }
@@ -74,6 +75,15 @@ void writeCommunityToFile(vector<Community> const& community, string const& path
 int main()
 {
 #ifdef DEBUG
+    omp_set_num_threads(4);
+#pragma omp parallel
+    {
+    int id=omp_get_thread_num();
+    print("hello {}",id);
+    print("world {}\n",id);
+    }
+    return 0;
+
     int vn=5;
     auto g=genTestGraph(vn);
     g->outputG();
@@ -141,28 +151,45 @@ int main()
         printContainer(egoNets[i].edges);
         print("\n");
     }*/
-
-    vector<Community> allCommunities;
+    omp_set_num_threads(PARALLEL_NUM);
+    vector<Community> allCommunities[PARALLEL_NUM];
     int egoSize=egoNets.size();
-    int i=0;
+    //int i=0;
+    using vvint_iter=decltype(allCommunities[0].begin());
     auto getAllcommunities=[&](){
-        for(const auto& net: egoNets){
+        #pragma omp parallel for
+        for(int i=0;i<egoSize;++i){
+            int thid=omp_get_thread_num();
+            auto const& net=egoNets[i];
             if(net.edges.empty()) continue;
-            auto slpa=Slpa::getInstance(Graph(net.edges),10,0.1);
-            slpa->SLPA();
+            //auto slpa=Slpa::getInstance(Graph(net.edges),10,0.1);
+            Slpa slpa(Graph(net.edges),10,0.1);
+            slpa.SLPA();
             //slpa->outputLabelMem();
             vector<Community> communities;
-            slpa->getCommunity(communities,false);
-            using vvint_iter=decltype(communities.begin());
-            allCommunities.insert(allCommunities.end(),move_iterator<vvint_iter>(communities.begin()),
+            slpa.getCommunity(communities,false);
+           // #pragma omp critical
+            allCommunities[thid].insert(allCommunities[thid].end(),move_iterator<vvint_iter>(communities.begin()),
                                   move_iterator<vvint_iter>(communities.end()));
         }
     };
     runningTime(getAllcommunities);
     print("finish get all communities\n");
-    runningTime(mergeCommunities,allCommunities);
+    vector<Community> finalCommunities;
+#pragma omp parallel for
+    for(int i=0;i<PARALLEL_NUM;++i){
+        print("all community size: {}\n",allCommunities[i].size());
+        runningTime(mergeCommunities,allCommunities[i]);
+        print("all community size: {}\n",allCommunities[i].size());
+        //finalCommunities.insert(finalCommunities.end(),move_iterator<vvint_iter>(allCommunities[i].begin()),
+        //                          move_iterator<vvint_iter>(allCommunities[i].end()));
+
+    }
+    print("final communities size: {}",finalCommunities.size());
+    /*runningTime(mergeCommunities,allCommunities);
     print("finish merge all communities\n");
     writeCommunityToFile(allCommunities,"communities.txt");
+    print("finish writing all communities\n");*/
 
 
     /*print("all communities:\n");

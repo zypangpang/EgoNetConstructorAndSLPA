@@ -88,4 +88,5 @@ inline randFuncType getRandomFunc(int min, int max){
     return bind(dist,mt);
 }
 void mergeCommunities(vector<Community> &communities);
+void mergeSmallCommunities(vector<Community> &communities);
 #endif // UTILS_H
