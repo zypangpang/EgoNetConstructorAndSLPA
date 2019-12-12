@@ -75,10 +75,48 @@ void Graph::enumTriangle(vector<Triangle> &triangles) const
                 auto z=*zit;
                 if(v==z||mask[v]||mask[z]) continue;
                 if(G[v].adjSet.count(z)){
-                    triangles.push_back(make_tuple(G[u].id,G[v].id,G[z].id));
+                    triangles.push_back(make_tuple(u,v,z));
                 }
             }
         }
         mask[u]=true;
+    }
+}
+
+//Get the ego-nets.
+void Graph::getEgoNets(vector<EgoNet>& egoNets,bool withEgoNode) const{
+    vector<Triangle> tris;
+    enumTriangle(tris);
+    print("finish enumerating triangles\n");
+    egoNets.resize(G.size());
+    for(int i=0;i<egoNets.size();++i){
+        egoNets[i].egoid=oid(i);
+    }
+    for(auto tri: tris){
+        int u=get<0>(tri);
+        int v=get<1>(tri);
+        int z=get<2>(tri);
+        egoNets[u].edges.push_back({oid(v),oid(z)});
+        egoNets[v].edges.push_back({oid(u),oid(z)});
+        egoNets[z].edges.push_back({oid(u),oid(v)});
+    }
+    if(withEgoNode){
+        unordered_set<int> vset;
+        for(int u=0;u<egoNets.size();++u){
+            vset.clear();
+            int sz=egoNets[u].edges.size();
+            for(int i=0;i<sz;++i){ // Attention! Cannot use auto here, because edges have changed in the body.
+                auto e=egoNets[u].edges[i];
+                int v=e.first,z=e.second;
+                if(vset.count(v)==0){
+                    egoNets[u].edges.push_back({oid(u),v});
+                    vset.insert(v);
+                }
+                if(vset.count(z)==0){
+                    egoNets[u].edges.push_back({oid(u),z});
+                    vset.insert(z);
+                }
+            }
+        }
     }
 }

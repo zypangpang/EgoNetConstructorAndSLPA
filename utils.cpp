@@ -14,20 +14,20 @@ void readGraphFile(const string& path,vector<IntPair>& edges){
     while(getline(fin,line)){
         if(line[0]=='#')
             continue;
-        stringstream ss(line);
-        int u,v;
-        ss>>u>>v;
+        string::size_type sz;
+        int u=stoi(line,&sz);
+        int v=stoi(line.substr(sz+1));
         edges.push_back({u,v});
     }
 }
 
-void outputEgoNetToFile(const vector<EdgeVec>& egoNets,string path){
+void outputEgoNetToFile(const vector<EgoNet>& egoNets,string path){
     ofstream fout(path);
     if(!fout) throw FileOpenException();
-    for(int i=0;i<egoNets.size();++i){
-        string str=fmt::format("#{}:",i);
+    for(const auto& net: egoNets){
+        string str=fmt::format("#{}:",net.egoid);
         fout<<str<<endl;
-        for(auto e: egoNets[i]){
+        for(auto e: net.edges){
             str=fmt::format("{} {}",e.first,e.second);
             fout<<str<<endl;
         }

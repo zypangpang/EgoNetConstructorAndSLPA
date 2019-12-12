@@ -6,6 +6,7 @@ Slpa* Slpa::instance=nullptr;
 void Slpa::SLPA(){
     //Init
     auto n=G.getVertexNum();
+    if(n==0) return;
     for(int i=0;i<n;++i)
         labelMem[i].push_back(i);
     //Evolution
@@ -29,11 +30,13 @@ void Slpa::SLPA(){
     }
 }
 
-void Slpa::getCommunity(vector<Community> &communities)
+void Slpa::getCommunity(vector<Community> &communities, bool withEdges)
 {
+    if(G.getVertexNum()==0) return;
     unordered_map<int,Community> map_communities;
     getNodeCommunity(map_communities);
-    getEdgeCommunity(map_communities);
+    if(withEdges)
+        getEdgeCommunity(map_communities);
     for(const auto& pr: map_communities){
         communities.push_back(move(pr.second));
     }
