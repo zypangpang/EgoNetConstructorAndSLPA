@@ -7,13 +7,15 @@
 #include <numeric>
 #include <unordered_map>
 #include <set>
+#include <sstream>
+#include <charconv>
 #include "omp.h"
 #include "utils.h"
 #include "graph.h"
 #include "SLPA.h"
-//#define DEBUG
+#define DEBUG
 using namespace std;
-constexpr int PARALLEL_NUM=8;
+constexpr int PARALLEL_NUM=12;
 shared_ptr<Graph> genTestGraph(int vn){
     auto g=make_shared<Graph>(vn);
     for(int step=1;step<3;++step){
@@ -59,6 +61,39 @@ void readEgoNetsFromFile(vector<EgoNet>& egoNets, const string& path){
         }
     }
 }
+void fastReadCommFromFile(vector<vector<int>>& communities, const string& path){
+    ifstream fin(path);
+    if(!fin) throw FileOpenException();
+    string line;
+    while(getline(fin,line)){
+        communities.emplace_back();
+        auto & curComm=communities.back();
+        string_view line_view(line.c_str());
+        string::size_type sz=0;
+        while(sz<line_view.size()){
+            line_view=line_view.substr(sz);
+            sz=line_view.find_first_of(' ');
+            int n;
+            from_chars(line_view.data(),line_view.data()+sz,n);
+            curComm.push_back(n);
+            ++sz;
+        }
+    }
+}
+void readCommFromFile(vector<vector<int>>& communities,string const& path){
+    ifstream fin(path);
+    if(!fin) throw FileOpenException();
+    string line;
+    while(getline(fin,line)){
+        communities.emplace_back();
+        auto & curComm=communities.back();
+        stringstream ss(move(line));
+        int n;
+        while(ss>>n) {
+            curComm.push_back(n);
+        }
+    }
+}
 void writeCommunityToFile(vector<Community> const& community, string const& path){
     ofstream fout(path);
     if(!fout) throw FileOpenException();
@@ -75,9 +110,36 @@ void writeCommunityToFile(vector<Community> const& community, string const& path
         }
     }
 }
+pair<double,double> computeAccuracy(vector<vector<int>> const& commAlg,vector<vector<int>> const& commTruth, vector<int>& commGetId){
+    vector<bool> maskAlg(commAlg.size(),false);
+    for(int i=0;i<commTruth.size();++i){
+        auto const& commT=commTruth[i];
+        for(int j=0;j<commAlg.size();++j){
+            if(maskAlg[j]) continue;
+            auto const& commA=commAlg[j];
+            if(commA.size()<commT.size())
+                continue;
+            if(isSubset(commA,commT)){
+                maskAlg[j]=true;
+                commGetId.push_back(i);
+                break;
+            }
+        }
+    }
+    //{Precision, Recall}
+    return {commGetId.size()/double(commAlg.size()),commGetId.size()/double(commTruth.size())};
+}
 int main()
 {
 #ifdef DEBUG
+    vector<vector<int>> commAlg,commTruth;
+    readCommFromFile(commAlg,"communitiesOnlyNode.txt");
+    readCommFromFile(commTruth,"amazon.top5000.cmty.txt");
+    vector<int> getId;
+    auto acr=computeAccuracy(commAlg,commTruth,getId);
+    cout<<acr<<endl;
+    return 0;
+
     omp_set_num_threads(4);
 #pragma omp parallel
     {
@@ -99,11 +161,11 @@ int main()
         for(auto e: egoNet.edges){
             print("{}->{}\n",e.first,e.second);
         }
-        auto slpa=Slpa::getInstance(Graph(egoNet.edges));
-        slpa->SLPA();
+        Slpa slpa(Graph(egoNet.edges));
+        slpa.SLPA();
         //slpa->outputLabelMem();
         vector<Community> communities;
-        slpa->getCommunity(communities);
+        slpa.getCommunity(communities);
         using vvint_iter=decltype(communities.begin());
         allCommunities.insert(allCommunities.end(),move_iterator<vvint_iter>(communities.begin()),
                               move_iterator<vvint_iter>(communities.end()));
@@ -163,7 +225,7 @@ int main()
             slpa.SLPA();
             //slpa->outputLabelMem();
             vector<Community> communities;
-            slpa.getCommunity(communities,true);
+            slpa.getCommunity(communities,false);
            // #pragma omp critical
             allCommunities[thid].insert(allCommunities[thid].end(),move_iterator<vvint_iter>(communities.begin()),
                                   move_iterator<vvint_iter>(communities.end()));

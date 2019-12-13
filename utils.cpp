@@ -38,13 +38,16 @@ void mergeSmallCommunities(vector<Community> &communities){
     vector<bool> mask(communities.size(),false);
     for(int i=0;i<communities.size();++i){
         for(int j=i+1;j<communities.size();++j){
-            if(mask[i]) break;
+            //if(mask[i]) break;
             if(mask[j]) continue;
             auto const& ci=communities[i].nodes;
             auto const& cj=communities[j].nodes;
             if(isSubset(ci,cj)){
                 if(ci.size()>cj.size()) mask[j]=true;
-                else mask[i]=true;
+                else{
+                    mask[i]=true;
+                    break;
+               }
             }
         }
     }
@@ -90,13 +93,16 @@ void mergeTwoCommus(vector<Community>& left,vector<Community>& right, vector<Com
     vector<bool> mask2(right.size(),false);
     for(int i=0;i<left.size();++i){
         for(int j=0;j<right.size();++j){
-            if(mask1[i]) break;
+            //if(mask1[i]) break;
             if(mask2[j]) continue;
             auto const& lc=left[i].nodes;
             auto const& rc=right[j].nodes;
             if(isSubset(lc,rc)){
                 if(lc.size()>rc.size()) mask2[j]=true;
-                else mask1[i]=true;
+                else{
+                    mask1[i]=true;
+                    break;
+                }
             }
         }
     }
