@@ -13,7 +13,7 @@
 #include "utils.h"
 #include "graph.h"
 #include "SLPA.h"
-#define DEBUG
+//#define DEBUG
 using namespace std;
 constexpr int PARALLEL_NUM=12;
 shared_ptr<Graph> genTestGraph(int vn){
@@ -37,7 +37,10 @@ shared_ptr<Graph> genGraphFromFile(string path){
 }
 void getAndWriteEgoNets(const Graph& g,string path){
     vector<EgoNet> egoNets;
-    g.getEgoNets(egoNets,true);
+    {
+        ScopedTimer timer;
+        g.getEgoNets(egoNets,true);
+    }
     print("finish getting ego nets\n");
     outputEgoNetToFile(egoNets,path);
     print("finish writing to file\n");
@@ -117,7 +120,7 @@ pair<double,double> computeAccuracy(vector<vector<int>> const& commAlg,vector<ve
         for(int j=0;j<commAlg.size();++j){
             if(maskAlg[j]) continue;
             auto const& commA=commAlg[j];
-            if(commA.size()<commT.size())
+            if(commA.size()!=commT.size())
                 continue;
             if(isSubset(commA,commT)){
                 maskAlg[j]=true;
@@ -129,26 +132,20 @@ pair<double,double> computeAccuracy(vector<vector<int>> const& commAlg,vector<ve
     //{Precision, Recall}
     return {commGetId.size()/double(commAlg.size()),commGetId.size()/double(commTruth.size())};
 }
+pair<double,double> getCommAccuracy(string const& commAlgPath, string const& commTruthPath, vector<int>& rightCommIds){
+    vector<vector<int>> commAlg,commTruth;
+    try{
+        readCommFromFile(commAlg,commAlgPath);
+        readCommFromFile(commTruth,commTruthPath);
+    }catch(exception const& e){
+        cout<<e.what()<<endl;
+        return {-1,-1};
+    }
+    return computeAccuracy(commAlg,commTruth,rightCommIds);
+}
 int main()
 {
 #ifdef DEBUG
-    vector<vector<int>> commAlg,commTruth;
-    readCommFromFile(commAlg,"communitiesOnlyNode.txt");
-    readCommFromFile(commTruth,"amazon.top5000.cmty.txt");
-    vector<int> getId;
-    auto acr=computeAccuracy(commAlg,commTruth,getId);
-    cout<<acr<<endl;
-    return 0;
-
-    omp_set_num_threads(4);
-#pragma omp parallel
-    {
-    int id=omp_get_thread_num();
-    print("hello {}",id);
-    print("world {}\n",id);
-    }
-    return 0;
-
     int vn=5;
     auto g=genTestGraph(vn);
     g->outputG();
@@ -169,24 +166,6 @@ int main()
         using vvint_iter=decltype(communities.begin());
         allCommunities.insert(allCommunities.end(),move_iterator<vvint_iter>(communities.begin()),
                               move_iterator<vvint_iter>(communities.end()));
-        /*slpa->getNodeCommunity(communities);
-        for(const auto& c : communities){
-            print("Community:\n");
-            printContainer(c);
-            print("\n");
-        }
-        using vvint_iter=decltype(communities.begin());
-        allCommunities.insert(allCommunities.end(),move_iterator<vvint_iter>(communities.begin()),
-                              move_iterator<vvint_iter>(communities.end()));
-        vector<EdgeVec> EdgeCommunities;
-        slpa->getEdgeCommunity(EdgeCommunities);
-        for(const auto& c : EdgeCommunities){
-            print("Edge Community:\n");
-            for(const auto& p:c){
-                print("{}->{}\n",p.first,p.second);
-            }
-            print("\n");
-        }*/
     }
     mergeCommunities(allCommunities);
     print("all communities:\n");
@@ -202,10 +181,12 @@ int main()
             print("\n");
     }
 #else
-    //auto g=genGraphFromFile("data/Amazon/amazon.ungraph.txt");
-    //print("finish gen G\n");
+    auto g=genGraphFromFile("data/Amazon/amazon.ungraph.txt");
+    print("finish gen G\n");
 
-    //getAndWriteEgoNets("egoNets.txt");
+    getAndWriteEgoNets(*g,"egoNets-1.txt");
+    print("finish getting and writing ego-nets.");
+    return 0;
     constexpr auto egoNetFilePath="egoNets_oriId.txt";
     vector<EgoNet> egoNets;
     runningTime(readEgoNetsFromFile,egoNets,egoNetFilePath);
@@ -216,7 +197,7 @@ int main()
     using vvint_iter=decltype(allCommunities[0].begin());
     auto getAllcommunities=[&](){
         #pragma omp parallel for
-        for(int i=0;i<egoNets.size();++i){
+        for(decltype(egoNets.size()) i=0;i<egoNets.size();++i){
             int thid=omp_get_thread_num();
             auto const& net=egoNets[i];
             if(net.edges.empty()) continue;

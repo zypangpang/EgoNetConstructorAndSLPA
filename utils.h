@@ -14,7 +14,6 @@ struct Community;
 struct EgoNet;
 using namespace std;
 using fmt::print;
-using randFuncType=function<mt19937::result_type()>;
 using IntPair=pair<int,int>;
 using EdgeVec=vector<IntPair>;
 struct FileOpenException: public exception{
@@ -81,13 +80,15 @@ auto runningTime(Functor f, Args && ... args)
     return f(forward<Args>(args)...);
 }
 
-inline randFuncType getRandomFunc(int min, int max){
+inline auto getRandomFunc(int min, int max) -> function<mt19937::result_type()>
+{
     random_device rd;
     mt19937 mt(rd());
     uniform_int_distribution<mt19937::result_type> dist(min,max);
     return bind(dist,mt);
 }
-void mergeCommunities(vector<Community> &communities);
+
+void mergeCommunitiesDeprecated(vector<Community> &communities);
 void mergeSmallCommunities(vector<Community> &communities);
 
 void fastMergeCommunities(vector<Community>& communities);

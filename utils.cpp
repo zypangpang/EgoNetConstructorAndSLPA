@@ -59,7 +59,7 @@ void mergeSmallCommunities(vector<Community> &communities){
     }
     communities=move(tcomm);
 }
-void mergeCommunities(vector<Community> &communities)
+void mergeCommunitiesDeprecated(vector<Community> &communities)
 {
     constexpr int MERGE_THRESHOLD=2000;
     if(communities.size()<MERGE_THRESHOLD){
